@@ -79,6 +79,10 @@
     <label for="business">Business name (optional — enables placement + CTA name checks)</label>
     <input type="text" id="business" placeholder="e.g. Howe-Peterson Funeral Home & Cremation Services" />
 
+    <label for="file">Load a file (.docx or .txt) — or paste below</label>
+    <input type="file" id="file" accept=".docx,.txt,.md" />
+    <p class="mode" id="fileStatus"></p>
+
     <label for="content">Pasted city page content</label>
     <textarea id="content" placeholder="Paste the full city page output here..."></textarea>
     <p class="mode" id="mode"></p>
@@ -352,7 +356,59 @@ function renderCheck(title, result) {
   return `<div class="check ${cls}"><div class="head"><span>${title}</span><span class="badge">${badge}</span></div><div class="body">${body}</div></div>`;
 }
 
-document.getElementById("run").addEventListener("click", () => {
+// ─── file loading (.txt / .docx, no external library) ────────────────────────
+function decodeXmlEntities(s) {
+  return s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+          .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+          .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+async function inflateRaw(bytes) {
+  const ds = new DecompressionStream("deflate-raw");
+  const ab = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+  return new Uint8Array(ab);
+}
+// Pull one entry out of a .docx (ZIP) using its central directory.
+async function docxEntryText(buf, name) {
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0 && i > buf.length - 65557; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("not a valid .docx (no ZIP directory)");
+  let off = dv.getUint32(eocd + 16, true);
+  const count = dv.getUint16(eocd + 10, true);
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const compSize = dv.getUint32(off + 20, true);
+    const nameLen = dv.getUint16(off + 28, true);
+    const extraLen = dv.getUint16(off + 30, true);
+    const commentLen = dv.getUint16(off + 32, true);
+    const localOff = dv.getUint32(off + 42, true);
+    const fname = new TextDecoder().decode(buf.subarray(off + 46, off + 46 + nameLen));
+    if (fname === name) {
+      const lNameLen = dv.getUint16(localOff + 26, true);
+      const lExtraLen = dv.getUint16(localOff + 28, true);
+      const dataStart = localOff + 30 + lNameLen + lExtraLen;
+      const comp = buf.subarray(dataStart, dataStart + compSize);
+      const raw = method === 0 ? comp : await inflateRaw(comp);
+      return new TextDecoder("utf-8").decode(raw);
+    }
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+  throw new Error(name + " not found in the .docx");
+}
+async function readDocxText(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const xml = await docxEntryText(buf, "word/document.xml");
+  let t = xml.replace(/<\/w:p>/g, "\n").replace(/<w:br[^>]*\/>/g, "\n")
+             .replace(/<w:tab[^>]*\/>/g, "\t").replace(/<[^>]+>/g, "");
+  t = decodeXmlEntities(t);
+  return t.split("\n").map(l => l.replace(/\s+$/, "")).filter(l => l !== "").join("\n");
+}
+
+function runQA() {
   const raw = document.getElementById("content").value;
   const keyword = document.getElementById("keyword").value;
   const city = document.getElementById("city").value;
@@ -382,6 +438,22 @@ document.getElementById("run").addEventListener("click", () => {
   const warns = results.filter(r => r[1].status === "warn").length;
   const summary = `<div class="summary"><b>${errs}</b> check(s) with issues, <b>${warns}</b> to review, <b>${results.length - errs - warns}</b> passing.</div>`;
   out.innerHTML = summary + results.map(r => renderCheck(r[0], r[1])).join("");
+}
+
+document.getElementById("run").addEventListener("click", runQA);
+document.getElementById("file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const status = document.getElementById("fileStatus");
+  status.textContent = "Reading " + file.name + "…";
+  try {
+    const text = /\.docx$/i.test(file.name) ? await readDocxText(file) : await file.text();
+    document.getElementById("content").value = text;
+    status.textContent = "Loaded " + file.name + " (" + text.length + " chars) — running check…";
+    runQA();
+  } catch (err) {
+    status.textContent = "Could not read " + file.name + ": " + err.message + ". Try pasting the text instead.";
+  }
 });
 </script>
 </body>
