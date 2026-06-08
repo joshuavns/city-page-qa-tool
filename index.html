@@ -101,6 +101,10 @@
 // ─── helpers ────────────────────────────────────────────────────────────────
 const PHONE_RE = /(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/;
 const PHONE_G  = /(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/g;
+// A CTA span: from <CTA Button> up to the FIRST boundary — a closing tag, the
+// next CTA open, the next heading, or end. Tolerates missing/malformed close tags
+// so one unclosed CTA can't swallow the rest of the document.
+const CTA_SPAN = /<CTA Button>[\s\S]*?(?:<\/CTA Button>|(?=<CTA Button>|<h[1-3]>|$))/gi;
 
 function countOccurrences(text, term) {
   if (!term || !term.trim()) return 0;
@@ -161,9 +165,12 @@ function findCtas(text, sections) {
   const ctas = [];
   ["CTA_1", "CTA_2", "CTA_3"].forEach(k => { if (sections[k]) ctas.push({ label: k, text: sections[k] }); });
   if (ctas.length === 0) {
-    const re = /<CTA Button>([\s\S]*?)<\/CTA Button>/gi;
-    let m, i = 1;
-    while ((m = re.exec(text)) !== null) ctas.push({ label: "CTA " + (i++), text: m[1].trim() });
+    const spans = text.match(CTA_SPAN) || [];
+    let i = 1;
+    for (const span of spans) {
+      const content = span.replace(/^<CTA Button>/i, "").replace(/<\/CTA Button>$/i, "").trim();
+      if (content) ctas.push({ label: "CTA " + (i++), text: content });   // skip empty/phantom spans
+    }
   }
   return ctas;
 }
@@ -265,7 +272,7 @@ function checkCity(clean, sections, structured, city) {
   } else {
     // document mode: count body only (exclude meta, h1, CTAs; schema/images already stripped)
     let body = clean
-      .replace(/<CTA Button>[\s\S]*?<\/CTA Button>/gi, " ")
+      .replace(CTA_SPAN, " ")
       .replace(/<h1>[\s\S]*?<\/h1>/gi, " ")
       .replace(/^\s*(URL|Meta\s*Title|Meta\s*Desc(?:ription)?|Download all images)\s*:.*$/gim, " ");
     const bodyCount = countOccurrences(body, city);
@@ -335,7 +342,7 @@ function checkBusinessName(clean, sections, structured, businessName) {
 function checkPhoneOutsideCtas(clean, sections, structured) {
   let searchText;
   if (structured) searchText = Object.entries(sections).filter(([k]) => !/^CTA_/.test(k)).map(([, v]) => v).join("\n");
-  else searchText = clean.replace(/<CTA Button>[\s\S]*?<\/CTA Button>/gi, " ");
+  else searchText = clean.replace(CTA_SPAN, " ");
   const snips = snippetsAround(searchText, PHONE_G, 10);
   if (snips.length) return { status: "err", findings: [{ sev: "error", msg: `Phone number found OUTSIDE CTA blocks in ${snips.length} place(s).`, detail: snips.join("\n"), fix: "Move each phone number into a CTA; remove it from intro/closing/meta/body." }] };
   return { status: "pass", findings: [{ sev: "ok", msg: "No phone numbers outside CTA blocks." }] };
