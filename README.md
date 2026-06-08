@@ -2,9 +2,9 @@
 
 A quick quality-assurance tool for Ring Ring Marketing city page content. Paste a generated city page and it flags what needs fixing — instantly, in your browser.
 
-**Live tool:** https://joshuavns.github.io/city-page-qa-tool/city-page-qa.html
+**Live tool:** https://joshuavns.github.io/city-page-qa-tool/
 
-Or download `city-page-qa.html` and double-click it. Either way it runs **entirely in your browser** — nothing is uploaded anywhere.
+Or download `index.html` and double-click it. Either way it runs **entirely in your browser** — nothing is uploaded anywhere.
 
 ## How to use
 
