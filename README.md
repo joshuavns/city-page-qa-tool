@@ -1,6 +1,6 @@
 # City Page QA Checker
 
-A quick quality-assurance tool for Ring Ring Marketing city page content. Paste a generated city page and it flags what needs fixing — instantly, in your browser.
+A quick quality-assurance tool for Ring Ring Marketing city page content. Upload or paste a generated city page and it flags what needs fixing — instantly, in your browser.
 
 **Live tool:** https://joshuavns.github.io/city-page-qa-tool/
 
@@ -8,11 +8,26 @@ Or download `index.html` and double-click it. Either way it runs **entirely in y
 
 ## How to use
 
-1. Enter the **target keyword**, **target city**, and (optionally) the **business name**.
-2. Paste the full city page output into the box.
-3. Click **Run QA Check**.
+1. **Open the tool:** go to https://joshuavns.github.io/city-page-qa-tool/
+2. **Fill in the fields at the top:**
+   - **Target keyword** — the exact keyword phrase for the page (e.g. *funeral home and cremations in Dearborn, MI*)
+   - **Target city** — just the city (e.g. *Dearborn*)
+   - **Business name** — optional, but fill it in to check name placement and CTAs
+3. **Add the content** one of two ways:
+   - **Easiest:** click **Load a file** and pick the page's **.docx**, or
+   - **Paste** the page text into the big box.
+4. **Click Run QA Check.** (If you uploaded a file, it runs automatically.)
+5. **Read the results** on the right. Each check is color-coded:
+   - 🟢 **PASS** — all good
+   - 🟡 **REVIEW** — worth a look
+   - 🔴 **ISSUES** — needs fixing
 
-It accepts both the `[SECTION]...[/SECTION]` generator format (full analysis) and rendered Word-doc text (`<CTA Button>`, `Meta Title:` markers). A note under the paste box tells you which mode it detected.
+   Open any flagged check to see the exact problem text and a **Fix:** line telling you what to change.
+6. **Make the fixes** in your document, then re-run to confirm everything turns green.
+
+Schema blocks and image details (Alt Text / File Name / Download) are ignored automatically, so you don't need to remove anything first.
+
+**Input formats:** the tool accepts a `.docx` upload, pasted Word-doc text, or the `[SECTION]...[/SECTION]` generator format. The section-tagged format gives the most precise per-section breakdown; a note under the paste box tells you which mode it detected.
 
 ## What it checks
 
