@@ -17,15 +17,13 @@
   header { background: #fff; border-bottom: 1px solid var(--line); padding: 18px 24px; }
   header h1 { margin: 0; font-size: 19px; }
   header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-  main { max-width: 1040px; margin: 24px auto; padding: 0 20px; display: grid;
+  main { max-width: 1100px; margin: 24px auto; padding: 0 20px; display: grid;
          grid-template-columns: 1fr 1fr; gap: 20px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-          padding: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
   .card h2 { margin: 0 0 12px; font-size: 15px; }
   label { display: block; font-size: 12px; font-weight: 600; color: var(--muted);
           margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .03em; }
-  input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line);
-                     border-radius: 6px; font-size: 14px; }
+  input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
   textarea { width: 100%; min-height: 360px; padding: 10px; border: 1px solid var(--line);
              border-radius: 6px; font: 13px/1.45 ui-monospace, Consolas, monospace; resize: vertical; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -33,22 +31,23 @@
            border: 0; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; }
   button:hover { background: #1d4ed8; }
   .mode { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .summary { font-size: 13px; margin: 0 0 12px; padding: 8px 12px; border-radius: 6px; background: #f1f5f9; }
   .check { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
-  .check > .head { padding: 10px 14px; font-weight: 600; display: flex; justify-content: space-between;
-                   align-items: center; }
+  .check > .head { padding: 10px 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
   .check.pass > .head { background: var(--ok-bg); color: var(--ok); }
   .check.warn > .head { background: var(--warn-bg); color: var(--warn); }
   .check.err  > .head { background: var(--err-bg); color: var(--err); }
   .check .body { padding: 10px 14px; font-size: 13.5px; }
   .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(0,0,0,.06); }
-  .finding { padding: 6px 0; border-top: 1px dashed var(--line); }
+  .finding { padding: 7px 0; border-top: 1px dashed var(--line); }
   .finding:first-child { border-top: 0; }
-  .finding.error  { color: var(--err); }
-  .finding.warning{ color: var(--warn); }
-  .finding.ok     { color: var(--ok); }
-  .snippet { display: block; margin-top: 3px; padding: 5px 8px; background: #f8fafc;
-             border-left: 3px solid var(--line); color: var(--ink); font: 12px ui-monospace, monospace;
-             white-space: pre-wrap; }
+  .finding.error { color: var(--err); }
+  .finding.warning { color: var(--warn); }
+  .finding.ok { color: var(--ok); }
+  .snippet { display: block; margin-top: 3px; padding: 5px 8px; background: #f8fafc; border-left: 3px solid var(--line);
+             color: var(--ink); font: 12px ui-monospace, monospace; white-space: pre-wrap; }
+  .fix { display: block; margin-top: 6px; padding: 6px 10px; background: #eef2ff; border-left: 3px solid var(--brand);
+         color: #1e3a8a; font-size: 12.5px; border-radius: 0 4px 4px 0; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
   th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
@@ -61,7 +60,7 @@
 <body>
 <header>
   <h1>City Page QA Checker</h1>
-  <p>Paste a generated city page (section-tagged or Word-doc text) and flag the issues that matter. Runs entirely in your browser — nothing is uploaded.</p>
+  <p>Paste a generated city page (section-tagged or Word-doc text) and flag what needs fixing. Schema blocks and image details are ignored automatically. Runs entirely in your browser — nothing is uploaded.</p>
 </header>
 
 <main>
@@ -70,15 +69,15 @@
     <div class="row2">
       <div>
         <label for="keyword">Target keyword (exact match)</label>
-        <input type="text" id="keyword" placeholder="e.g. home care services in Kennewick, WA" />
+        <input type="text" id="keyword" placeholder="e.g. funeral home and cremations in Dearborn, MI" />
       </div>
       <div>
         <label for="city">Target city</label>
-        <input type="text" id="city" placeholder="e.g. Kennewick" />
+        <input type="text" id="city" placeholder="e.g. Dearborn" />
       </div>
     </div>
-    <label for="business">Business name (optional — enables CTA/section name checks)</label>
-    <input type="text" id="business" placeholder="e.g. Affordable at Home Care" />
+    <label for="business">Business name (optional — enables placement + CTA name checks)</label>
+    <input type="text" id="business" placeholder="e.g. Howe-Peterson Funeral Home & Cremation Services" />
 
     <label for="content">Pasted city page content</label>
     <textarea id="content" placeholder="Paste the full city page output here..."></textarea>
@@ -95,23 +94,47 @@
 <script>
 "use strict";
 
-// ---- helpers ---------------------------------------------------------------
+// ─── helpers ────────────────────────────────────────────────────────────────
 const PHONE_RE = /(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/;
+const PHONE_G  = /(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/g;
 
 function countOccurrences(text, term) {
   if (!term || !term.trim()) return 0;
-  const t = (text || "").toLowerCase();
-  const k = term.toLowerCase();
+  const t = (text || "").toLowerCase(), k = term.toLowerCase();
   let count = 0, pos = 0;
   while ((pos = t.indexOf(k, pos)) !== -1) { count++; pos += k.length; }
   return count;
 }
+function escapeHtml(s) { return (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 
-function escapeHtml(s) {
-  return (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function snippetsAround(text, regex, maxShow) {
+  const out = [];
+  const re = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : regex.flags + "g");
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const start = Math.max(0, m.index - 30), end = Math.min(text.length, m.index + m[0].length + 30);
+    out.push("…" + text.slice(start, end).replace(/\s+/g, " ").trim() + "…");
+    if (out.length >= (maxShow || 10)) break;
+    if (m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
 }
 
-// Parse [SECTION]...[/SECTION] blocks (the generator's native format)
+// Remove everything that must NOT be analyzed: JSON-LD schema, image detail
+// lines/blocks, and stray Word position artifacts. Applied before every check.
+function stripNoise(text) {
+  let t = text;
+  t = t.replace(/<script[\s\S]*?<\/script>/gi, " ");                                   // JSON-LD schema
+  t = t.replace(/\[SCHEMA\][\s\S]*?\[\/SCHEMA\]/gi, " ");                               // tagged schema
+  t = t.replace(/^\s*(FAQ\s+)?Schema(\s+Markup|\s+JSON-?LD)?\s*:?\s*$/gim, " ");        // "FAQ Schema" label line
+  t = t.replace(/^\s*Image\s+(Alt\s+Text|File\s*Name|Download)\s*:.*$/gim, " ");        // rendered image lines
+  t = t.replace(/\[IMAGE_\d+\][\s\S]*?\[\/IMAGE_\d+\]/gi, " ");                          // tagged image blocks
+  t = t.replace(/<Image Alt>[\s\S]*?<\/Image Alt>/gi, " ");                             // docx image-alt marker
+  t = t.replace(/^\s*(ALT|FILENAME|DOWNLOAD|ORIGIN|LICENSE|AI_STATUS)\s*:.*$/gim, " ");  // tagged image fields
+  t = t.replace(/\b(left|right)\d{3,}(?=\s*<h)/gi, "");                                  // Word position artifacts
+  return t;
+}
+
 function parseSections(text) {
   const sections = {};
   const re = /\[([A-Z_0-9]+)\]([\s\S]*?)\[\/\1\]/g;
@@ -120,22 +143,19 @@ function parseSections(text) {
   return sections;
 }
 
-// Find the meta title in either format
 function findMetaTitle(text, sections) {
-  if (sections.META) {
-    const m = sections.META.match(/^META_TITLE:\s*(.+)$/m);
-    if (m) return m[1].trim();
-  }
+  if (sections.META) { const m = sections.META.match(/^META_TITLE:\s*(.+)$/m); if (m) return m[1].trim(); }
   const m = text.match(/^\s*Meta\s*Title:\s*(.+)$/mi);
   return m ? m[1].trim() : "";
 }
-
-// Collect CTA texts from either format
+function findMetaDescription(text, sections) {
+  if (sections.META) { const m = sections.META.match(/^META_DESCRIPTION:\s*(.+)$/m); if (m) return m[1].trim(); }
+  const m = text.match(/^\s*Meta\s*Desc(?:ription)?:\s*(.+)$/mi);
+  return m ? m[1].trim() : "";
+}
 function findCtas(text, sections) {
   const ctas = [];
-  ["CTA_1", "CTA_2", "CTA_3"].forEach(k => {
-    if (sections[k]) ctas.push({ label: k, text: sections[k] });
-  });
+  ["CTA_1", "CTA_2", "CTA_3"].forEach(k => { if (sections[k]) ctas.push({ label: k, text: sections[k] }); });
   if (ctas.length === 0) {
     const re = /<CTA Button>([\s\S]*?)<\/CTA Button>/gi;
     let m, i = 1;
@@ -144,262 +164,224 @@ function findCtas(text, sections) {
   return ctas;
 }
 
-// ---- checks ----------------------------------------------------------------
-function checkKeyword(text, sections, keyword, metaTitle) {
+// Heading-based segmentation for document-mode (no [SECTION] tags).
+function h2Blocks(text) {
+  const parts = text.split(/<h2>/i).slice(1);
+  return parts.map(p => {
+    const i = p.search(/<\/h2>/i);
+    return { heading: (i >= 0 ? p.slice(0, i) : p).trim(), body: (i >= 0 ? p.slice(i + 5) : "").trim() };
+  });
+}
+function docSections(clean) {
+  const out = {};
+  const afterH1 = (clean.split(/<\/h1>/i)[1] || clean);
+  out.INTRO = afterH1.split(/<h2>/i)[0].trim();
+  const blocks = h2Blocks(clean);
+  const find = re => blocks.find(b => re.test(b.heading));
+  const why = find(/why\b[\s\S]*?(choose|famil)/i);            if (why) out.WHY_CHOOSE_US = why.heading + "\n" + why.body;
+  const svc = find(/service/i);                                if (svc) out.SERVICES = svc.heading + "\n" + svc.body;
+  const gbp = find(/review|saying|stories|story|testimon/i);   if (gbp) out.GBP_REVIEW = gbp.heading + "\n" + gbp.body;
+  if (blocks.length) { const c = blocks[blocks.length - 1]; out.CLOSING = c.heading + "\n" + c.body; }
+  if (blocks.length) { const s = blocks[0];
+    if (!/why\b|service|review|saying|stories|faq|frequently/i.test(s.heading)) out.SGE_AIO = s.heading + "\n" + s.body; }
+  return out;
+}
+
+// ─── checks ───────────────────────────────────────────────────────────────
+function checkKeyword(clean, sections, structured, keyword, metaTitle) {
+  if (!keyword.trim()) return { status: "warn", findings: [{ sev: "warning", msg: "No target keyword entered — skipped." }] };
   const findings = [];
-  if (!keyword.trim()) {
-    return { status: "warn", findings: [{ sev: "warning", msg: "No target keyword entered — skipped." }] };
-  }
-  const total = countOccurrences(text, keyword);
+  const total = countOccurrences(clean, keyword);
   const inTitle = countOccurrences(metaTitle, keyword);
   const outside = total - inTitle;
 
-  if (inTitle === 0) {
-    findings.push({ sev: "warning", msg: "Exact keyword was NOT found in the Meta Title (it must appear there)." });
-  } else {
-    findings.push({ sev: "ok", msg: "Exact keyword present in the Meta Title." });
-  }
+  if (inTitle === 0) findings.push({ sev: "warning", msg: "Exact keyword NOT found in the Meta Title — it must appear there.", fix: "Rework the Meta Title so it contains the exact keyword phrase verbatim." });
+  else findings.push({ sev: "ok", msg: "Exact keyword present in the Meta Title." });
 
   if (outside > 0) {
-    const where = [];
-    if (Object.keys(sections).length) {
-      for (const [key, val] of Object.entries(sections)) {
-        let c = countOccurrences(val, keyword);
-        if (key === "META") c -= inTitle; // don't double-count the title itself
-        if (c > 0) where.push(`${key} (${c})`);
-      }
-    }
-    findings.push({
-      sev: "error",
-      msg: `Exact keyword appears ${outside} time(s) OUTSIDE the Meta Title. It must appear in the Meta Title only — use natural variations elsewhere.`,
-      detail: where.length ? "Found in: " + where.join(", ") : null
-    });
-  } else {
-    findings.push({ sev: "ok", msg: "Exact keyword does not appear outside the Meta Title." });
-  }
+    const snips = snippetsAround(clean.replace(metaTitle, " "), new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), 8);
+    const f = { sev: "error", msg: `Exact keyword appears ${outside} time(s) OUTSIDE the Meta Title. Use it only in the Meta Title; everywhere else use natural variations.`,
+                fix: "Replace each exact-match instance below with a natural variation (reorder, synonym, or restructure) that reads naturally." };
+    if (snips.length) f.detail = snips.join("\n");
+    findings.push(f);
+  } else findings.push({ sev: "ok", msg: "Exact keyword does not appear outside the Meta Title." });
+
   return { status: outside > 0 ? "err" : (inTitle === 0 ? "warn" : "pass"), findings };
 }
 
 const CITY_TARGETS = { INTRO: 3, SGE_AIO: 3, SERVICES: 6, WHY_CHOOSE_US: 4, GBP_REVIEW: 2, CLOSING: 4 };
 const CITY_TOTAL = 25;
 
-function checkCityStructured(sections, city) {
-  const findings = [];
-  const rows = [];
-  let total = 0;
-
-  for (const [key, target] of Object.entries(CITY_TARGETS)) {
-    const c = sections[key] ? countOccurrences(sections[key], city) : 0;
-    total += c;
-    rows.push({ label: key, actual: c, target });
+function faqAnswerCityCount(clean, sections, structured, city) {
+  let faqBody = null;
+  if (structured && sections.FAQ) faqBody = sections.FAQ;
+  else {
+    const m = clean.match(/<h2>[^<]*(FAQ|Frequently Asked)[\s\S]*?(?=<h2>|$)/i);
+    if (m) faqBody = m[0];
   }
-
-  // FAQ: headings count toward total (target 3); answer bodies must be 0
-  let faqHeadings = 0, faqAnswers = 0;
-  if (sections.FAQ) {
-    let inAnswer = false;
-    for (const line of sections.FAQ.split("\n")) {
-      const s = line.trim();
-      if (s.startsWith("H3:")) { faqHeadings += countOccurrences(s, city); inAnswer = true; }
-      else if (s.startsWith("H2:")) { faqHeadings += countOccurrences(s, city); inAnswer = false; }
-      else if (inAnswer && s) faqAnswers += countOccurrences(s, city);
-    }
+  if (faqBody == null) return null;
+  let inAnswer = false, answers = [];
+  for (const line of faqBody.split("\n")) {
+    const s = line.trim();
+    if (/<h3|^H3:/i.test(s)) { inAnswer = true; continue; }
+    if (/<h2|^H2:/i.test(s)) { inAnswer = false; continue; }
+    if (inAnswer && s) answers.push(s);
   }
-  total += faqHeadings;
-  rows.push({ label: "FAQ headings", actual: faqHeadings, target: 3 });
-
-  if (faqAnswers > 0) {
-    findings.push({ sev: "error", msg: `City name appears ${faqAnswers} time(s) in FAQ answer bodies — must be ZERO.` });
-  }
-
-  const tableRows = rows.map(r =>
-    `<tr><td>${r.label}</td><td class="${r.actual === r.target ? "good" : "off"}">${r.actual}</td><td>${r.target}</td></tr>`
-  ).join("");
-  const table = `<table><tr><th>Section</th><th>Found</th><th>Target</th></tr>${tableRows}</table>`;
-
-  if (total !== CITY_TOTAL) {
-    findings.unshift({
-      sev: "error",
-      msg: `City "${city}" appears ${total} time(s) in body content — ${Math.abs(total - CITY_TOTAL)} ${total > CITY_TOTAL ? "OVER" : "UNDER"} the required ${CITY_TOTAL}. (CTAs, Meta, and Image blocks are excluded.)`,
-      html: table
-    });
-  } else {
-    findings.unshift({ sev: "ok", msg: `City total is exactly ${CITY_TOTAL} across body content.`, html: table });
-  }
-
-  const status = (total !== CITY_TOTAL || faqAnswers > 0) ? "err" : "pass";
-  return { status, findings };
+  return countOccurrences(answers.join(" "), city);
 }
 
-function checkCityDocument(text, city) {
-  // Approximate body count: strip CTAs, meta lines, image-alt markers, then count.
-  let body = text
-    .replace(/<CTA Button>[\s\S]*?<\/CTA Button>/gi, " ")
-    .replace(/<Image Alt>[\s\S]*?<\/Image Alt>/gi, " ")
-    .replace(/^\s*(Meta\s*Title|Meta\s*Description|URL|Download all images):.*$/gim, " ");
-  const bodyCount = countOccurrences(body, city);
-  const totalAll = countOccurrences(text, city);
+function checkCity(clean, sections, structured, city) {
+  if (!city.trim()) return { status: "warn", findings: [{ sev: "warning", msg: "No target city entered — skipped." }] };
+  const findings = [];
+  let status = "pass";
 
-  const findings = [{
-    sev: "warning",
-    msg: `Document-mode (no [SECTION] tags): per-section breakdown unavailable. Approx. body-content mentions of "${city}": ${bodyCount} (target ${CITY_TOTAL}). Total in whole paste incl. CTAs/meta: ${totalAll}.`
-  }];
-  let status = "warn";
-  if (bodyCount > CITY_TOTAL + 1) { findings.push({ sev: "error", msg: `Likely OVER the ${CITY_TOTAL} cap.` }); status = "err"; }
+  // FAQ answer bodies must be zero (works in both modes)
+  const faqCity = faqAnswerCityCount(clean, sections, structured, city);
+  if (faqCity !== null && faqCity > 0) {
+    findings.push({ sev: "error", msg: `City "${city}" appears ${faqCity} time(s) in FAQ answer bodies — must be ZERO (city allowed only in FAQ question headings).`,
+                    fix: "Remove or rephrase the city name out of every FAQ answer paragraph; keep it only in the question headings." });
+    status = "err";
+  }
+
+  if (structured) {
+    const rows = []; let total = 0;
+    for (const [key, target] of Object.entries(CITY_TARGETS)) {
+      const c = sections[key] ? countOccurrences(sections[key], city) : 0; total += c; rows.push({ label: key, actual: c, target });
+    }
+    let faqH = 0;
+    if (sections.FAQ) for (const line of sections.FAQ.split("\n")) { const s = line.trim(); if (s.startsWith("H2:") || s.startsWith("H3:")) faqH += countOccurrences(s, city); }
+    total += faqH; rows.push({ label: "FAQ headings", actual: faqH, target: 3 });
+    const table = `<table><tr><th>Section</th><th>Found</th><th>Target</th></tr>` +
+      rows.map(r => `<tr><td>${r.label}</td><td class="${r.actual === r.target ? "good" : "off"}">${r.actual}</td><td>${r.target}</td></tr>`).join("") + `</table>`;
+    if (total !== CITY_TOTAL) {
+      findings.push({ sev: "error", msg: `City appears ${total} time(s) in body content — ${Math.abs(total - CITY_TOTAL)} ${total > CITY_TOTAL ? "OVER" : "UNDER"} the required ${CITY_TOTAL}.`,
+                      html: table, fix: total > CITY_TOTAL ? "Trim mentions from the sections marked over-target above." : "Add city mentions to the sections marked under-target above." });
+      status = "err";
+    } else findings.push({ sev: "ok", msg: `City total is exactly ${CITY_TOTAL} across body content.`, html: table });
+  } else {
+    // document mode: count body only (exclude meta, h1, CTAs; schema/images already stripped)
+    let body = clean
+      .replace(/<CTA Button>[\s\S]*?<\/CTA Button>/gi, " ")
+      .replace(/<h1>[\s\S]*?<\/h1>/gi, " ")
+      .replace(/^\s*(URL|Meta\s*Title|Meta\s*Desc(?:ription)?|Download all images)\s*:.*$/gim, " ");
+    const bodyCount = countOccurrences(body, city);
+    let f = { sev: "ok", msg: `Body-content mentions of "${city}": ${bodyCount} (target ${CITY_TOTAL}). Document mode — schema, image details, meta, and CTAs excluded; per-section breakdown needs [SECTION] tags.` };
+    if (Math.abs(bodyCount - CITY_TOTAL) > 2) { f.sev = "error"; f.msg = `City appears ${bodyCount} time(s) in body content — likely ${bodyCount > CITY_TOTAL ? "OVER" : "UNDER"} the target of ${CITY_TOTAL}.`;
+      f.fix = bodyCount > CITY_TOTAL ? `Trim about ${bodyCount - CITY_TOTAL} city mention(s) from the longer body sections.` : `Add about ${CITY_TOTAL - bodyCount} city mention(s) across the body.`; status = "err"; }
+    else if (bodyCount !== CITY_TOTAL) { f.sev = "warning"; if (status === "pass") status = "warn"; }
+    findings.push(f);
+  }
   return { status, findings };
 }
 
 function checkCtas(ctas, businessName) {
-  if (ctas.length === 0) {
-    return { status: "warn", findings: [{ sev: "warning", msg: "No CTAs detected. (Expecting [CTA_1..3] tags or <CTA Button> markers.)" }] };
-  }
-  const findings = [];
-  let worst = "pass";
+  if (ctas.length === 0) return { status: "warn", findings: [{ sev: "warning", msg: "No CTAs detected (expecting [CTA_1..3] tags or <CTA Button> markers)." }] };
+  const findings = []; let worst = "pass";
   ctas.forEach(cta => {
     const local = [];
+    let hard = false;
     const phone = cta.text.match(PHONE_RE);
-    if (!phone) { local.push({ sev: "error", msg: "No phone number found." }); worst = "err"; }
-    else {
-      const before = cta.text.slice(0, phone.index).trim();
-      const words = before ? before.split(/\s+/).filter(Boolean).length : 0;
-      if (words > 10) { local.push({ sev: "warning", msg: `${words} words before the phone number (aim ≤ 10).` }); if (worst === "pass") worst = "warn"; }
-    }
+    if (!phone) { local.push("No phone number — add the business phone number to this CTA."); hard = true; }
+    else { const before = cta.text.slice(0, phone.index).trim(); const w = before ? before.split(/\s+/).filter(Boolean).length : 0;
+      if (w > 10) local.push(`${w} words before the phone (aim ≤ 10) — tighten the lead-in.`); }
     const totalWords = cta.text.trim().split(/\s+/).filter(Boolean).length;
-    if (totalWords > 25) { local.push({ sev: "warning", msg: `CTA is ${totalWords} words — may be too long.` }); if (worst === "pass") worst = "warn"; }
-    if (businessName.trim() && countOccurrences(cta.text, businessName) > 0) {
-      local.push({ sev: "error", msg: "Business name appears in this CTA (it must not)." }); worst = "err";
-    }
-    if (local.length === 0) local.push({ sev: "ok", msg: "Short and includes a phone number." });
-    findings.push({ sev: local.some(f => f.sev === "error") ? "error" : local.some(f => f.sev === "warning") ? "warning" : "ok",
-                    msg: `${cta.label}: ${cta.text}`, sub: local });
+    if (totalWords > 25) local.push(`${totalWords} words total — likely too long for a CTA.`);
+    if (businessName.trim() && countOccurrences(cta.text, businessName) > 0) { local.push("Business name appears here — remove it (business name must never be in a CTA)."); hard = true; }
+    if (hard) worst = "err"; else if (local.length && worst === "pass") worst = "warn";
+    const f = { sev: local.length ? (hard ? "error" : "warning") : "ok", msg: `${cta.label}: ${cta.text}` };
+    if (local.length) f.fix = local.join(" ");
+    else f.msg = `${cta.label}: short and includes a phone number. ✓ — ${cta.text}`;
+    findings.push(f);
   });
   return { status: worst, findings };
 }
 
-function snippetsAround(text, regex, maxShow) {
-  const out = [];
-  const re = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : regex.flags + "g");
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const start = Math.max(0, m.index - 30);
-    const end = Math.min(text.length, m.index + m[0].length + 30);
-    out.push("…" + text.slice(start, end).replace(/\s+/g, " ").trim() + "…");
-    if (out.length >= (maxShow || 10)) break;
-    if (m.index === re.lastIndex) re.lastIndex++;
-  }
-  return out;
-}
-
-function checkEmDashes(text) {
+function checkEmDashes(clean) {
   const findings = [];
-  const em = snippetsAround(text, /—/, 12);   // — em-dash
-  const en = snippetsAround(text, /–/, 12);   // – en-dash
-  if (em.length)
-    findings.push({ sev: "error", msg: `Found ${em.length}${em.length >= 12 ? "+" : ""} em-dash(es) (—). Replace with a comma or a hyphen.`, detail: em.join("\n") });
-  if (en.length)
-    findings.push({ sev: "warning", msg: `Found ${en.length}${en.length >= 12 ? "+" : ""} en-dash(es) (–). These should not appear either — use a hyphen.`, detail: en.join("\n") });
-  if (!em.length && !en.length)
-    findings.push({ sev: "ok", msg: "No em-dashes or en-dashes found." });
+  const em = snippetsAround(clean, /—/, 12), en = snippetsAround(clean, /–/, 12);
+  if (em.length) findings.push({ sev: "error", msg: `Found ${em.length}${em.length >= 12 ? "+" : ""} em-dash(es) (—).`, detail: em.join("\n"), fix: "Replace each — with a comma (joining clauses) or a hyphen (compound adjectives)." });
+  if (en.length) findings.push({ sev: "warning", msg: `Found ${en.length}${en.length >= 12 ? "+" : ""} en-dash(es) (–).`, detail: en.join("\n"), fix: "Replace each – with a hyphen, or a comma if it joins clauses." });
+  if (!em.length && !en.length) findings.push({ sev: "ok", msg: "No em-dashes or en-dashes found." });
   return { status: em.length ? "err" : en.length ? "warn" : "pass", findings };
 }
 
-function checkBusinessName(sections, structured, businessName) {
-  if (!businessName.trim())
-    return { status: "warn", findings: [{ sev: "warning", msg: "No business name entered — skipped." }] };
-  if (!structured)
-    return { status: "warn", findings: [{ sev: "warning", msg: "Per-section placement needs [SECTION] tags — skipped in document mode." }] };
-
-  const findings = [];
-  let worst = "pass";
+function checkBusinessName(clean, sections, structured, businessName) {
+  if (!businessName.trim()) return { status: "warn", findings: [{ sev: "warning", msg: "No business name entered — skipped." }] };
+  const secs = structured ? sections : docSections(clean);
+  const findings = []; let worst = "pass";
   const onceIn = [["INTRO", "Intro"], ["SGE_AIO", "SGE/AIO"], ["WHY_CHOOSE_US", "Why Choose Us"], ["CLOSING", "Closing"]];
   for (const [key, label] of onceIn) {
-    if (!(key in sections)) continue;
-    const c = countOccurrences(sections[key], businessName);
-    if (c === 0) { findings.push({ sev: "warning", msg: `${label}: business name missing — should appear exactly once.` }); if (worst === "pass") worst = "warn"; }
-    else if (c > 1) { findings.push({ sev: "warning", msg: `${label}: business name appears ${c} times — should be once.` }); if (worst === "pass") worst = "warn"; }
+    if (!secs[key]) continue;
+    const c = countOccurrences(secs[key], businessName);
+    if (c === 0) { findings.push({ sev: "warning", msg: `${label}: business name missing — should appear exactly once.`, fix: `Add the business name once in the ${label} section.` }); if (worst === "pass") worst = "warn"; }
+    else if (c > 1) { findings.push({ sev: "warning", msg: `${label}: business name appears ${c} times — should be once.`, fix: `Remove ${c - 1} mention(s) so the business name appears once in ${label}.` }); if (worst === "pass") worst = "warn"; }
     else findings.push({ sev: "ok", msg: `${label}: business name appears once.` });
   }
-  if (sections.META) {
-    const md = (sections.META.match(/^META_DESCRIPTION:\s*(.+)$/m) || [])[1] || "";
-    if (md) {
-      const c = countOccurrences(md, businessName);
-      if (c === 0) { findings.push({ sev: "warning", msg: "Meta Description: business name missing — should appear once." }); if (worst === "pass") worst = "warn"; }
-      else findings.push({ sev: "ok", msg: "Meta Description: business name present." });
-    }
-  }
-  if (sections.SERVICES) {
-    const c = countOccurrences(sections.SERVICES, businessName);
-    if (c > 0) { findings.push({ sev: "error", msg: `Services: business name appears ${c} time(s) — it must NOT appear here.` }); worst = "err"; }
-    else findings.push({ sev: "ok", msg: "Services: no business name (correct)." });
-  }
+  const md = findMetaDescription(clean, sections);
+  if (md) { const c = countOccurrences(md, businessName);
+    if (c === 0) { findings.push({ sev: "warning", msg: "Meta Description: business name missing — should appear once.", fix: "Add the business name once in the Meta Description." }); if (worst === "pass") worst = "warn"; }
+    else findings.push({ sev: "ok", msg: "Meta Description: business name present." }); }
+  if (secs.SERVICES) { const c = countOccurrences(secs.SERVICES, businessName);
+    if (c > 0) { findings.push({ sev: "error", msg: `Services: business name appears ${c} time(s) — it must NOT appear here.`, fix: "Remove the business name from the Services section." }); worst = "err"; }
+    else findings.push({ sev: "ok", msg: "Services: no business name (correct)." }); }
+  if (!structured) findings.unshift({ sev: "warning", msg: "Document mode — sections detected by headings (best-effort). Use [SECTION]-tagged content for exact results." });
   return { status: worst, findings };
 }
 
-function checkPhoneOutsideCtas(text, sections, structured) {
-  const PHONE_G = /(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/g;
+function checkPhoneOutsideCtas(clean, sections, structured) {
   let searchText;
-  if (structured) {
-    searchText = Object.entries(sections).filter(([k]) => !/^CTA_/.test(k)).map(([, v]) => v).join("\n");
-  } else {
-    searchText = text.replace(/<CTA Button>[\s\S]*?<\/CTA Button>/gi, " ");
-  }
+  if (structured) searchText = Object.entries(sections).filter(([k]) => !/^CTA_/.test(k)).map(([, v]) => v).join("\n");
+  else searchText = clean.replace(/<CTA Button>[\s\S]*?<\/CTA Button>/gi, " ");
   const snips = snippetsAround(searchText, PHONE_G, 10);
-  if (snips.length)
-    return { status: "err", findings: [{ sev: "error", msg: `Phone number found OUTSIDE CTA blocks in ${snips.length} place(s). Phone numbers belong in CTAs only.`, detail: snips.join("\n") }] };
+  if (snips.length) return { status: "err", findings: [{ sev: "error", msg: `Phone number found OUTSIDE CTA blocks in ${snips.length} place(s).`, detail: snips.join("\n"), fix: "Move each phone number into a CTA; remove it from intro/closing/meta/body." }] };
   return { status: "pass", findings: [{ sev: "ok", msg: "No phone numbers outside CTA blocks." }] };
 }
 
-// ---- render ----------------------------------------------------------------
+// ─── render ─────────────────────────────────────────────────────────────────
 function renderCheck(title, result) {
   const cls = result.status;
   const badge = cls === "pass" ? "PASS" : cls === "warn" ? "REVIEW" : "ISSUES";
   let body = "";
   result.findings.forEach(f => {
-    if (f.sub) {
-      body += `<div class="finding ${f.sev}">${escapeHtml(f.msg.split(":")[0])}<span class="snippet">${escapeHtml(f.msg.substring(f.msg.indexOf(":") + 1).trim())}</span>`;
-      f.sub.forEach(s => { body += `<div class="finding ${s.sev}" style="padding-left:10px">• ${escapeHtml(s.msg)}</div>`; });
-      body += `</div>`;
-    } else {
-      body += `<div class="finding ${f.sev}">${escapeHtml(f.msg)}`;
-      if (f.detail) body += `<span class="snippet">${escapeHtml(f.detail)}</span>`;
-      if (f.html) body += f.html;
-      body += `</div>`;
-    }
+    body += `<div class="finding ${f.sev}">${escapeHtml(f.msg)}`;
+    if (f.detail) body += `<span class="snippet">${escapeHtml(f.detail)}</span>`;
+    if (f.html) body += f.html;
+    if (f.fix) body += `<span class="fix"><b>Fix:</b> ${escapeHtml(f.fix)}</span>`;
+    body += `</div>`;
   });
   return `<div class="check ${cls}"><div class="head"><span>${title}</span><span class="badge">${badge}</span></div><div class="body">${body}</div></div>`;
 }
 
 document.getElementById("run").addEventListener("click", () => {
-  const text = document.getElementById("content").value;
+  const raw = document.getElementById("content").value;
   const keyword = document.getElementById("keyword").value;
   const city = document.getElementById("city").value;
   const business = document.getElementById("business").value;
   const out = document.getElementById("results");
+  if (!raw.trim()) { out.innerHTML = `<div class="empty">Paste some content first.</div>`; return; }
 
-  if (!text.trim()) { out.innerHTML = `<div class="empty">Paste some content first.</div>`; return; }
-
-  const sections = parseSections(text);
+  const clean = stripNoise(raw);
+  const sections = parseSections(clean);
   const structured = Object.keys(sections).length > 0;
-  document.getElementById("mode").textContent =
-    structured ? "Detected section-tagged format — full per-section analysis." :
-                 "No [SECTION] tags — running document-mode (keyword + CTA full, city approximate).";
+  document.getElementById("mode").textContent = structured
+    ? "Detected section-tagged format — full per-section analysis. Schema + image details excluded."
+    : "Document mode (no [SECTION] tags) — schema + image details excluded; sections detected by headings.";
 
-  const metaTitle = findMetaTitle(text, sections);
-  const ctas = findCtas(text, sections);
+  const metaTitle = findMetaTitle(clean, sections);
+  const ctas = findCtas(clean, sections);
 
-  let html = "";
-  html += renderCheck("1 · Exact-match keyword (Meta Title only)", checkKeyword(text, sections, keyword, metaTitle));
-  if (!city.trim()) {
-    html += renderCheck("2 · City mention count", { status: "warn", findings: [{ sev: "warning", msg: "No target city entered — skipped." }] });
-  } else {
-    html += renderCheck("2 · City mention count", structured ? checkCityStructured(sections, city) : checkCityDocument(text, city));
-  }
-  html += renderCheck("3 · CTAs (short + phone number)", checkCtas(ctas, business));
-  html += renderCheck("4 · Em-dashes (none allowed)", checkEmDashes(text));
-  html += renderCheck("5 · Business name placement", checkBusinessName(sections, structured, business));
-  html += renderCheck("6 · Phone numbers (CTAs only)", checkPhoneOutsideCtas(text, sections, structured));
-
-  out.innerHTML = html;
+  const results = [
+    ["1 · Exact-match keyword (Meta Title only)", checkKeyword(clean, sections, structured, keyword, metaTitle)],
+    ["2 · City mention count", checkCity(clean, sections, structured, city)],
+    ["3 · CTAs (short + phone number)", checkCtas(ctas, business)],
+    ["4 · Em-dashes (none allowed)", checkEmDashes(clean)],
+    ["5 · Business name placement", checkBusinessName(clean, sections, structured, business)],
+    ["6 · Phone numbers (CTAs only)", checkPhoneOutsideCtas(clean, sections, structured)],
+  ];
+  const errs = results.filter(r => r[1].status === "err").length;
+  const warns = results.filter(r => r[1].status === "warn").length;
+  const summary = `<div class="summary"><b>${errs}</b> check(s) with issues, <b>${warns}</b> to review, <b>${results.length - errs - warns}</b> passing.</div>`;
+  out.innerHTML = summary + results.map(r => renderCheck(r[0], r[1])).join("");
 });
 </script>
 </body>
