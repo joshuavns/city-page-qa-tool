@@ -37,5 +37,6 @@ Schema blocks and image details (Alt Text / File Name / Download) are ignored au
 4. **Em-dashes** — flags any em-dash (—) or en-dash (–), with context snippets.
 5. **Business name placement** — exactly once in Intro, SGE/AIO, Why Choose Us, Closing, and the Meta Description; never in Services.
 6. **Phone numbers** — flags any phone number appearing outside CTA blocks.
+7. **HTML tags** — flags unbalanced/malformed markup: a `<CTA Button>` without its `</CTA Button>`, unclosed headings, or typos like `</3>` instead of `</h3>`.
 
 Internal tool — Ring Ring Marketing.

@@ -348,6 +348,41 @@ function checkPhoneOutsideCtas(clean, sections, structured) {
   return { status: "pass", findings: [{ sev: "ok", msg: "No phone numbers outside CTA blocks." }] };
 }
 
+function checkHtml(clean) {
+  const findings = [];
+  let issues = 0;
+
+  // CTA tags must be balanced (open <CTA Button> ↔ close </CTA Button>)
+  const ctaOpen = (clean.match(/<CTA Button>/gi) || []).length;
+  const ctaClose = (clean.match(/<\/CTA Button>/gi) || []).length;
+  if (ctaOpen !== ctaClose) {
+    issues++;
+    findings.push({ sev: "error",
+      msg: `CTA tags unbalanced: ${ctaOpen} opening <CTA Button> vs ${ctaClose} closing </CTA Button>.`,
+      fix: `Each CTA needs exactly one </CTA Button>. A common slip is typing <CTA Button> again instead of </CTA Button> — fix the ${Math.abs(ctaOpen - ctaClose)} mismatch(es).` });
+  }
+
+  // Heading tags must be balanced per level
+  for (const lvl of [1, 2, 3]) {
+    const open = (clean.match(new RegExp("<h" + lvl + ">", "gi")) || []).length;
+    const close = (clean.match(new RegExp("</h" + lvl + ">", "gi")) || []).length;
+    if (open !== close) {
+      issues++;
+      findings.push({ sev: "error", msg: `<h${lvl}> tags unbalanced: ${open} opening vs ${close} closing.`, fix: `Add the missing </h${lvl}> tag(s) so every <h${lvl}> is closed.` });
+    }
+  }
+
+  // Malformed closing heading tags like </3> (missing the "h")
+  const badClose = snippetsAround(clean, /<\/[1-9]>/, 8);
+  if (badClose.length) {
+    issues++;
+    findings.push({ sev: "error", msg: `Found ${badClose.length} malformed heading close tag(s) like </3> (missing the "h").`, detail: badClose.join("\n"), fix: 'Change </1>, </2>, </3> to </h1>, </h2>, </h3>.' });
+  }
+
+  if (issues === 0) findings.push({ sev: "ok", msg: "All CTA and heading tags are properly opened and closed." });
+  return { status: issues ? "err" : "pass", findings };
+}
+
 // ─── render ─────────────────────────────────────────────────────────────────
 function renderCheck(title, result) {
   const cls = result.status;
@@ -440,6 +475,7 @@ function runQA() {
     ["4 · Em-dashes (none allowed)", checkEmDashes(clean)],
     ["5 · Business name placement", checkBusinessName(clean, sections, structured, business)],
     ["6 · Phone numbers (CTAs only)", checkPhoneOutsideCtas(clean, sections, structured)],
+    ["7 · HTML tags (properly closed)", checkHtml(clean)],
   ];
   const errs = results.filter(r => r[1].status === "err").length;
   const warns = results.filter(r => r[1].status === "warn").length;
